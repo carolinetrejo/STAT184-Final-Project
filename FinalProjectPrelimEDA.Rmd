@@ -5,4 +5,14 @@ date: "11/16/20"
 output: html_notebook
 ---
 
+# Guiding Question
+
+# Become acquainted with the data sources
+
+# Explore intuition related to research question
+
+
+# Two or more data sources
+
+
 

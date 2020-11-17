@@ -5,14 +5,78 @@ date: "11/16/20"
 output: html_notebook
 ---
 
+library(mosaic)
+library(DataComputing)
+library(tidyverse)
+
+## Primary data source:
+
+```{r}
+X2019WorldHappinessReport <- read_excel("Downloads/2019WorldHappinessReport.xlsm")
+head(X2019WorldHappinessReport)
+```
+
+## Secondary data source:
+
+```{r}
+head(HappyPlanetIndex)
+```
+
 # Guiding Question
+
+## What makes a country happy?
 
 # Become acquainted with the data sources
 
+## Where did you find them?
+
+- I found this dataset on Kaggle.com
+
+## Who collected/maintains them?
+
+- The World Happiness Report is a global survey conducted yearly to measure the overall happiness of each country. The data in this set is from the Gallup World Poll.
+
+## When & Why were they originally collected?
+
+- The data was originally collected as researchers wanted to figure out how happy people are in their respective countries and what the factors are that lead to these results. The first survey was conducted in 2012, the second in 2013, the third in 2015, and have been conducted yearly since.
+
+## What does a case represent in each data source, and how many total cases are available?
+
+- A case in the data source represents the happiness score for a given country along with the scores of relative factors used to create the final happiness score, with 156 cases in the primary dataset and 143 cases in the secondary dataset.
+
+## What are some of the variables that you plan to use
+
+- I plan to use all of the given variables coupled in with country name and score to determine what factors determine happiness more than others.  
+
+```{r}
+glimpse(X2019WorldHappinessReport)
+glimpse(HappyPlanetIndex)
+```
+
+
 # Explore intuition related to research question
 
+### Looking at the countries with the top 16 highest happiness scores (above 7), It can be seen that GDP does not have a huge affect on the overall happiness of these countries.
 
-# Two or more data sources
+```{r}
+X2019WorldHappinessReport%>%
+  filter(Score > 7)%>%
+  ggplot(aes(x=GDP, y = Score))+
+  geom_point(aes(color = Country))
+```
+### However, when looking at the total effect of GDP versus happiness score, it can be seen that there is a relatively strong correlation between the two.
 
+```{r}
+X2019WorldHappinessReport%>%
+  ggplot(aes(x=GDP, y = Score))+
+  geom_point()
+```
+### The variable that has the least impact on the happiness of a country is Perception of Corruption, which follows a vague trend of correlation to happiness in the middle of the set, but begins with a drop in happiness score and ends with a drop in happiness score as perception raises.
+
+```{r}
+X2019WorldHappinessReport%>%
+  ggplot(aes(x=CorruptionPerception, y = Score))+
+  geom_smooth()
+```
 
 

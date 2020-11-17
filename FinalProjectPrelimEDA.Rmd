@@ -79,4 +79,4 @@ X2019WorldHappinessReport%>%
   geom_smooth()
 ```
 
-
+## The research question should be relatively straightforward to answer, with certain trends being seen already. I would like to dive more into the relation between scores and different factors like where in the world countries are or new intuitions.

@@ -1,0 +1,202 @@
+---
+title: "Stat 184 Final Project"
+author: "Caroline Trejo"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, message = FALSE}
+library(DataComputing)
+library(tidyverse)
+library(mosaic)
+library(Lock5Data)
+library(cluster)
+library("readxl")
+
+```
+
+## Research Question: What factors makes a country happy?
+
+### First, let's initially inspect the data to get a better sense of the general data we are working with and how similar the two datasets are. First we have the World Happiness Report (WHR), which is the outside datasource, and the Happy Planet Index (HPI), which is an R dataset from the Lock5Data package.
+
+```{r}
+whr <- read_excel("2019WorldHappinessReport.xlsm")
+head(whr)
+glimpse(whr)
+nrow(whr)
+```
+
+```{r}
+hpi <- HappyPlanetIndex
+head(HappyPlanetIndex)
+glimpse(HappyPlanetIndex)
+nrow(HappyPlanetIndex)
+```
+
+### After loading the data, let's remove any rows with null values
+
+```{r}
+whr <- whr[complete.cases(whr), ]
+hpi <- hpi[complete.cases(hpi), ]
+```
+
+### Looking at the data, we can see the common columns between the two data sources are Country, Happiness Score, GDP, Rank, and Life Expectancy. Notable differences between the two are that the HappyPlanetIndex uses actual values while the World Happiness Report uses values representative on a scale to compare all of the countries values together.
+
+### Both datasets show a different correlation between GDP and happiness ranking. The HPI shows relatively no correlation between the two while the WHR shows a positive relationship between the two. We will use log10 on the HPI data because the values of GDP are extremely large.
+
+```{r, message = FALSE}
+hpi %>%
+  ggplot(aes(x = GDPperCapita, y = HPI)) + 
+  geom_point(aes(color = Population)) +
+  (coord_trans(x = 'log10'))
+```
+
+
+```{r}
+whr %>%
+  ggplot(aes(x = GDP, y = Score)) + 
+  geom_point(aes(color = GDP))
+```
+
+
+### The variable that has the least impact on the happiness of a country seems to be Perception of Corruption, which follows a vague trend of correlation to happiness in the middle of the set, but begins with a drop in happiness score and ends with a drop in happiness score as perception raises.
+
+```{r, message = FALSE}
+whr %>%
+  ggplot(aes(x=CorruptionPerception, y = Score))+
+  geom_smooth()+
+  geom_point(aes(color = CorruptionPerception))
+```
+
+### Let's look at the relationship between happiness and freedom of choice, a variable that the World Happiness Report takes into account but not the Happy Planet Index. This shows a relatively positive relationship between the two, but there are more outliers than expected. 
+
+```{r}
+whr %>%
+  ggplot(aes(x = FreedomOfChoice, y = Score)) + 
+  geom_point(aes(color = FreedomOfChoice))
+```
+
+### Here I am grabbing the Top 10 happiest countries from each dataset to inspect the similarity between the two rankings
+
+```{r}
+top10WHR <-
+  whr %>%
+  filter(Rank < 11)%>%
+  arrange(desc(Rank))
+
+top10HPI <-
+  hpi %>%
+  filter(HPIRank < 11) %>%
+  arrange(desc(HPIRank))
+
+head(top10WHR)
+head(top10HPI)
+```
+
+## Interestingly, it can be seen that none of the top 10 countries in each dataset are the same, with the World Happiness Report countries all being in Europe (with the exception of Canada) and the Happy Planet Index countries all in South America (with the exception of Vietnam). This suggests the datasets were either taken at vastly different times or prioritize different measurements as  indicators of happiness. Since the tables are so different, the best approach is probably to treat them separately.
+
+
+### Let's zoom out. The Happy Planet Index has a column called "Region". Let's use this to determine if demographic impacts a country's happiness score on the world map. First we'll find the mean HPI for each region and the standard deviation from the mean for each region then plot it.
+
+```{r}
+MeanHPI<-
+  hpi %>%
+  group_by(Region) %>%
+  summarise(mn_hpi = exp(mean(HPI, na.rm = TRUE)))
+
+
+MeanHPI %>% 
+  ggplot(aes(x = Region, y = mn_hpi)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+
+### Based on the HPI data, the countries that are the happiest are in Region 1, which is South America. This is consistent with the previous observation. Let's join the tables to roughly see what the WHR data would rank the highest scoring regions as.
+
+
+```{r}
+whrRegion <-
+  hpi %>%
+  select(Region, Country)%>%
+  left_join(whr, by = c("Country" = "Country"))
+
+whrRegion <- whrRegion[complete.cases(whrRegion), ]
+
+MeanWHR<-
+  whrRegion %>%
+  group_by(Region) %>%
+  summarise(mn_whr = exp(mean(Score, na.rm = TRUE)))
+
+MeanWHR %>% 
+  ggplot(aes(x = Region, y = mn_whr)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+### Based on the WHR data, the countries in Region 2 are the happiest by far, which are the European countries. Based on the most recent global data, the WHR data is more accurate than the HPI, so let's try and figure out what makes the European countries happier. Let's try plotting some different variables by region to see where Region 2 stands out.
+
+### GDP 
+```{r}
+whrRegion%>%
+  ggplot(aes(x=GDP, y=Score))+
+  geom_point(aes(color = Region))+
+  facet_wrap( ~ Region)
+```
+### Life Expectancy 
+```{r}
+whrRegion%>%
+  ggplot(aes(x=LifeExpectancy, y=Score))+
+  geom_point(aes(color = Region))+
+  facet_wrap( ~ Region)
+```
+
+### Social Support 
+```{r}
+whrRegion%>%
+  ggplot(aes(x=SocialSupport, y=Score))+
+  geom_point(aes(color = Region))+
+  facet_wrap( ~ Region)
+```
+
+### Freedom of Choice 
+```{r}
+whrRegion%>%
+  ggplot(aes(x=FreedomOfChoice, y=Score))+
+  geom_point(aes(color = Region))+
+  facet_wrap( ~ Region)
+```
+
+### Generosity 
+```{r}
+whrRegion%>%
+  ggplot(aes(x=Generosity, y=Score))+
+  geom_point(aes(color = Region))+
+  facet_wrap( ~ Region)
+```
+
+### Corruption Perception
+```{r}
+whrRegion%>%
+  ggplot(aes(x=CorruptionPerception, y=Score))+
+  geom_point(aes(color = Region))+
+  facet_wrap( ~ Region)
+```
+
+### Based on these graphs, it can be seen that Region 2 is excelling vastly in GDP, life expectancy, social support, and freedom of choice. Perception of corruption seems to have relatively no affect on Region 2's happiness score. Surprisingly enough, generosity does not seem to have a huge effect on happiness, but it doesn't seem to for most regions. 
+
+
+### Based on these results, it seems that a countries happiness is largely determined by GDP, life expectancy, social support, and freedom of choice.
+
+## For one last exercise, let's make a decision tree that can be used to try and determine what a countries rank would be:
+
+```{r, message = FALSE}
+library(party)
+
+output.tree <- ctree(Rank ~ GDP + SocialSupport + LifeExpectancy, data = whr)
+
+plot(output.tree) 
+```
+
+### If GDP is greater than 1.1, Social Support is greater than 1.452, and LifeExpectancy is less than or equal to 0.95, that countries ranking is between roughly 1 and 50.
